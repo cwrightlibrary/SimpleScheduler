@@ -1,2 +1,3 @@
-# SimpleScheduler
-A scheduler for the library
+# Simple Scheduler
+
+A scheduler for the library.
