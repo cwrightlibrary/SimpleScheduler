@@ -240,12 +240,23 @@ class ShowEmployee(ctk.CTkToplevel):
 		self.focus_force()
 		self.grab_set()
 
+		self.db_conn = sqlite3.connect("data/employees.db")
+		self.db_cursor = self.db_conn.cursor()
+
+		self.db_cursor.execute("SELECT * FROM EMPLOYEES")
+		self.rows = self.db_cursor.fetchall()
+
+		for row in self.rows:
+			print(row)
+		
+		self.db_conn.close()
+
 
 class ShowTemplate(ctk.CTkToplevel):
 	def __init__(self, master=None):
 		super().__init__(master)
 		self.title("Show Template")
-		self.geometry("400x300")
+		self.geometry("1200x300")
 
 		self.lift()
 		self.focus_force()
@@ -254,7 +265,7 @@ class ShowTemplate(ctk.CTkToplevel):
 		self.columnconfigure(0, weight=1)
 		self.rowconfigure(0, weight=1)
 
-		self.preview_text_box = ctk.CTkTextbox(self, wrap="word")
+		self.preview_text_box = ctk.CTkTextbox(self, wrap="none", font=("Courier", 13))
 		self.preview_text_box.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
 		self.db_conn = sqlite3.connect("data/template.db")
@@ -273,7 +284,15 @@ class ShowTemplate(ctk.CTkToplevel):
 			for n in list(self.rows[l]):
 				temp_table.append(n)
 			preview_text.append(temp_table)
-		pprint(preview_text)
+
+		for row in preview_text:
+			line = ""
+			for cell in row:
+				if cell is None:
+					cell = "None"
+				line += str(cell).ljust(20)
+			line += "\n\n"
+			self.preview_text_box.insert("end", line)
 
 		self.preview_text_box.configure(state="disabled")
 		
