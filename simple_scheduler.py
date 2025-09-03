@@ -27,12 +27,14 @@ class App(ctk.CTk):
 		self.sidebar_label.grid(row=0, column=0, padx=5, pady=5, sticky="new")
 		self.sidebar_label.cget("font").configure(size=14)
 
-		# add employee button to open the sub-window
 		self.add_employee_button = ctk.CTkButton(self.sidebar_frame, text="Add Employee", command=self.add_employee_subwindow)
 		self.add_employee_button.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
 
+		self.add_template_button = ctk.CTkButton(self.sidebar_frame, text="Add Template", command=self.add_template_subwindow)
+		self.add_template_button.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
+
 		self.toggle_theme_button = ctk.CTkButton(self.sidebar_frame, text="Toggle theme", command=self.toggle_theme)
-		self.toggle_theme_button.grid(row=2, column=0, padx=5, pady=5, sticky="sew")
+		self.toggle_theme_button.grid(row=3, column=0, padx=5, pady=5, sticky="sew")
 
 		self.main_frame = ctk.CTkFrame(self)
 		self.main_frame.grid(row=0, column=1, columnspan=10, padx=(2.5, 5), pady=5, sticky="nsew")
@@ -45,6 +47,9 @@ class App(ctk.CTk):
 	
 	def add_employee_subwindow(self):
 		AddEmployee(self)
+	
+	def add_template_subwindow(self):
+		AddTemplate(self)
 	
 	def toggle_theme(self):
 		if self.theme_choice in ["system", "light"]:
@@ -145,6 +150,81 @@ class AddEmployee(ctk.CTkToplevel):
 			self.db_cursor.execute("SELECT * FROM EMPLOYEES")
 			for row in self.db_cursor.fetchall():
 				print(row)
+		else:
+			print("Not valid")
+
+
+class AddTemplate(ctk.CTkToplevel):
+	def __init__(self, master=None):
+		super().__init__(master)
+		self.title("Add Template")
+		self.geometry("800x400")
+
+		self.db_conn = sqlite3.connect("data/template.db")
+		self.db_cursor = self.db_conn.cursor()
+		self.db_cursor.execute("DROP TABLE IF EXISTS TEMPLATE")
+
+		self.db_create_table_query = """
+			CREATE TABLE TEMPLATE (
+				NINE_ELEVEN CHAR(50) NOT NULL,
+				ELEVEN_ONE CHAR(50) NOT NULL,
+				ONE_TWO CHAR(50) NOT NULL,
+				TWO_FOUR CHAR(50) NOT NULL,
+				FOUR_SIX CHAR(50) NOT NULL,
+				SIX_EIGHT CHAR(50) NOT NULL
+			);
+		"""
+
+		self.db_cursor.execute(self.db_create_table_query)
+
+		self.columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
+		self.rowconfigure((0, 1, 2, 3, 4, 5, 6, 7, 8, 9), weight=1)
+
+		self.label_title = ctk.CTkLabel(self, text="Add Template")
+		self.label_title.grid(row=0, column=0, columnspan=7, padx=5, pady=5, sticky="nsew")
+		self.label_title.cget("font").configure(size=14)
+
+		self.headers = ["", "9-11", "11-1", "1-2", "2-4", "4-6", "6-8"]
+		self.locations = [
+			"pick-up window", "floor lead",
+			"service point 1", "service point 1",
+			"service point 2", "service point 2",
+			"meetings/programs",
+			"project time"
+		]
+		self.input_contents = []
+
+		for h in range(len(self.headers)):
+			locations = []
+			if h > 0:
+				location_label = ctk.CTkLabel(self, text=self.headers[h])
+				location_label.grid(row=1, column=h, padx=5, pady=5, sticky="ew")
+			for l in range(len(self.locations) - 1):
+				if h == 0:
+					location_label = ctk.CTkLabel(self, text=self.locations[l])
+					location_label.grid(row=l+2, column=h, padx=5, pady=5, sticky="ew")
+				else:
+					location_entry = ctk.CTkEntry(self, placeholder_text="First Name")
+					location_entry.grid(row=l+2, column=h, padx=5, pady=5, sticky="ew")
+					locations.append(location_entry)
+			self.input_contents.append(locations)
+
+		self.cancel_button = ctk.CTkButton(self, text="Cancel", command=self.cancel_command)
+		self.cancel_button.grid(row=9, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+		self.add_button = ctk.CTkButton(self, text="Add to database", command=self.add_to_db)
+		self.add_button.grid(row=9, column=4, columnspan=3, padx=5, pady=5, sticky="ew")
+	
+	def cancel_command(self):
+		self.db_conn.close()
+		self.destroy()
+	
+	def add_to_db(self):
+		if all(entry.get() for sub in self.input_contents for entry in sub):
+			for hidx, hdata in enumerate(self.input_contents):
+				hour_names = [n.get() for n in hdata]
+				print(hour_names)
+
 		else:
 			print("Not valid")
 
