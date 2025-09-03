@@ -1,6 +1,7 @@
 import sqlite3
 import customtkinter as ctk
 
+from pprint import pprint
 from prettytable import PrettyTable
 
 
@@ -10,6 +11,10 @@ class App(ctk.CTk):
 		# window info
 		self.title("Simple Scheduler")
 		self.geometry("800x600")
+
+		self.lift()
+		self.focus_force()
+		self.grab_set()
 
 		self.theme_choice = "system"
 		ctk.set_appearance_mode(self.theme_choice)
@@ -21,20 +26,26 @@ class App(ctk.CTk):
 		self.sidebar_frame = ctk.CTkFrame(self)
 		self.sidebar_frame.grid(row=0, column=0, padx=(5, 2.5), pady=5, sticky="nsew")
 		self.sidebar_frame.columnconfigure(0, weight=1)
-		self.sidebar_frame.rowconfigure((0, 1, 2), weight=1)
+		self.sidebar_frame.rowconfigure((0, 1, 2, 3, 4, 5), weight=1)
 
 		self.sidebar_label = ctk.CTkLabel(self.sidebar_frame, text="Tools")
 		self.sidebar_label.grid(row=0, column=0, padx=5, pady=5, sticky="new")
 		self.sidebar_label.cget("font").configure(size=14)
 
 		self.add_employee_button = ctk.CTkButton(self.sidebar_frame, text="Add Employee", command=self.add_employee_subwindow)
-		self.add_employee_button.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
+		self.add_employee_button.grid(row=1, column=0, padx=5, pady=5, sticky="new")
+
+		self.show_employees_button = ctk.CTkButton(self.sidebar_frame, text="Show Employees", command=self.show_employees_subwindow)
+		self.show_employees_button.grid(row=2, column=0, padx=5, pady=5, sticky="new")
 
 		self.add_template_button = ctk.CTkButton(self.sidebar_frame, text="Add Template", command=self.add_template_subwindow)
-		self.add_template_button.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
+		self.add_template_button.grid(row=3, column=0, padx=5, pady=5, sticky="new")
+
+		self.show_template_button = ctk.CTkButton(self.sidebar_frame, text="Show Template", command=self.show_template_subwindow)
+		self.show_template_button.grid(row=4, column=0, padx=5, pady=5, sticky="new")
 
 		self.toggle_theme_button = ctk.CTkButton(self.sidebar_frame, text="Toggle theme", command=self.toggle_theme)
-		self.toggle_theme_button.grid(row=3, column=0, padx=5, pady=5, sticky="sew")
+		self.toggle_theme_button.grid(row=5, column=0, padx=5, pady=5, sticky="sew")
 
 		self.main_frame = ctk.CTkFrame(self)
 		self.main_frame.grid(row=0, column=1, columnspan=10, padx=(2.5, 5), pady=5, sticky="nsew")
@@ -48,8 +59,14 @@ class App(ctk.CTk):
 	def add_employee_subwindow(self):
 		AddEmployee(self)
 	
+	def show_employees_subwindow(self):
+		ShowEmployee(self)
+	
 	def add_template_subwindow(self):
 		AddTemplate(self)
+	
+	def show_template_subwindow(self):
+		ShowTemplate(self)
 	
 	def toggle_theme(self):
 		if self.theme_choice in ["system", "light"]:
@@ -65,22 +82,9 @@ class AddEmployee(ctk.CTkToplevel):
 		self.title("Add Employee")
 		self.geometry("400x300")
 
-		# database object
-		self.db_conn = sqlite3.connect("data/employees.db")
-		self.db_cursor = self.db_conn.cursor()
-		self.db_cursor.execute("DROP TABLE IF EXISTS EMPLOYEES")
-
-		# create the database table
-		self.db_create_table_query = """
-			CREATE TABLE EMPLOYEES (
-				First_Name CHAR(25) NOT NULL,
-				Last_Name CHAR(25) NOT NULL,
-				Position CHAR(25) NOT NULL,
-				Start_Time CHAR(5) NOT NULL,
-				End_Time CHAR(5) NOT NULL
-			);
-		"""
-		self.db_cursor.execute(self.db_create_table_query)
+		self.lift()
+		self.focus_force()
+		self.grab_set()
 		
 		# configure grid
 		self.columnconfigure((0, 1, 2), weight=1)
@@ -127,18 +131,18 @@ class AddEmployee(ctk.CTkToplevel):
 		self.end_minute = ctk.CTkComboBox(self, values=["00", "15", "30", "45"])
 		self.end_minute.grid(row=5, column=2, padx=5, pady=5, sticky="ew")
 
-		self.cancel_button = ctk.CTkButton(self, text="Cancel", command=self.cancel_command)
+		self.cancel_button = ctk.CTkButton(self, text="Cancel", command=self.destroy)
 		self.cancel_button.grid(row=6, column=0, padx=5, pady=5, sticky="ew")
 
 		self.add_button = ctk.CTkButton(self, text="Add to database", command=self.add_to_db)
 		self.add_button.grid(row=6, column=1, columnspan=2, padx=5, pady=5, sticky="ew")
 	
-	def cancel_command(self):
-		self.db_conn.close()
-		self.destroy()
-	
 	def add_to_db(self):
-		if self.entry_first_name.get() and self.entry_last_name.get() and self.position_selector.get() and self.start_hour.get() and self.start_minute.get() and self.end_hour.get() and self.end_minute.get():
+		if (self.entry_first_name.get() and self.entry_last_name.get()
+			and self.position_selector.get() and self.start_hour.get()
+			and self.start_minute.get() and self.end_hour.get()
+			and self.end_minute.get()):
+
 			first_name = self.entry_first_name.get()
 			last_name = self.entry_last_name.get()
 			position = self.position_selector.get()
@@ -146,10 +150,15 @@ class AddEmployee(ctk.CTkToplevel):
 			start_minute = self.start_minute.get()
 			end_hour = self.end_hour.get()
 			end_minute = self.end_minute.get()
-			self.db_cursor.execute(f"INSERT INTO EMPLOYEES VALUES ('{first_name}', '{last_name}', '{position}', '{start_hour}:{start_minute}', '{end_hour}:{end_minute}')")
-			self.db_cursor.execute("SELECT * FROM EMPLOYEES")
-			for row in self.db_cursor.fetchall():
-				print(row)
+
+			conn = sqlite3.connect("data/employees.db")
+			cursor = conn.cursor()
+
+			cursor.execute(f"INSERT INTO EMPLOYEES VALUES ('{first_name}', '{last_name}', '{position}', '{start_hour}:{start_minute}', '{end_hour}:{end_minute}')")
+
+			conn.commit()
+			conn.close()
+			self.destroy()
 		else:
 			print("Not valid")
 
@@ -160,22 +169,9 @@ class AddTemplate(ctk.CTkToplevel):
 		self.title("Add Template")
 		self.geometry("800x400")
 
-		self.db_conn = sqlite3.connect("data/template.db")
-		self.db_cursor = self.db_conn.cursor()
-		self.db_cursor.execute("DROP TABLE IF EXISTS TEMPLATE")
-
-		self.db_create_table_query = """
-			CREATE TABLE TEMPLATE (
-				NINE_ELEVEN CHAR(50) NOT NULL,
-				ELEVEN_ONE CHAR(50) NOT NULL,
-				ONE_TWO CHAR(50) NOT NULL,
-				TWO_FOUR CHAR(50) NOT NULL,
-				FOUR_SIX CHAR(50) NOT NULL,
-				SIX_EIGHT CHAR(50) NOT NULL
-			);
-		"""
-
-		self.db_cursor.execute(self.db_create_table_query)
+		self.lift()
+		self.focus_force()
+		self.grab_set()
 
 		self.columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
 		self.rowconfigure((0, 1, 2, 3, 4, 5, 6, 7, 8, 9), weight=1)
@@ -209,27 +205,116 @@ class AddTemplate(ctk.CTkToplevel):
 					locations.append(location_entry)
 			self.input_contents.append(locations)
 
-		self.cancel_button = ctk.CTkButton(self, text="Cancel", command=self.cancel_command)
+		self.cancel_button = ctk.CTkButton(self, text="Cancel", command=self.destroy)
 		self.cancel_button.grid(row=9, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
 		self.add_button = ctk.CTkButton(self, text="Add to database", command=self.add_to_db)
 		self.add_button.grid(row=9, column=4, columnspan=3, padx=5, pady=5, sticky="ew")
 	
-	def cancel_command(self):
-		self.db_conn.close()
-		self.destroy()
-	
 	def add_to_db(self):
-		if all(entry.get() for sub in self.input_contents for entry in sub):
-			for hidx, hdata in enumerate(self.input_contents):
-				hour_names = [n.get() for n in hdata]
-				print(hour_names)
+		all_names = []
+		for hidx, hdata in enumerate(self.input_contents):
+			if hidx > 0:
+				hour_names = [f"'{n.get()}'" if n.get() != "" else "NULL" for n in hdata]
+				all_names.append(hour_names)
+		reshaped_names = [list(row) for row in zip(*all_names)]
 
-		else:
-			print("Not valid")
+		conn = sqlite3.connect("data/template.db")
+		cursor = conn.cursor()
 
+		for n in reshaped_names:
+			cursor.execute(f"INSERT INTO TEMPLATE VALUES ({','.join(n)})")
+		
+		conn.commit()
+		conn.close()
+		self.destroy()
+
+
+class ShowEmployee(ctk.CTkToplevel):
+	def __init__(self, master=None):
+		super().__init__(master)
+		self.title("Show Employees")
+		self.geometry("400x300")
+
+		self.lift()
+		self.focus_force()
+		self.grab_set()
+
+
+class ShowTemplate(ctk.CTkToplevel):
+	def __init__(self, master=None):
+		super().__init__(master)
+		self.title("Show Template")
+		self.geometry("400x300")
+
+		self.lift()
+		self.focus_force()
+		self.grab_set()
+
+		self.columnconfigure(0, weight=1)
+		self.rowconfigure(0, weight=1)
+
+		self.preview_text_box = ctk.CTkTextbox(self, wrap="word")
+		self.preview_text_box.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+
+		self.db_conn = sqlite3.connect("data/template.db")
+		self.db_cursor = self.db_conn.cursor()
+
+		self.db_cursor.execute("SELECT * FROM TEMPLATE")
+		self.rows = self.db_cursor.fetchall()
+
+		locations = ["pick-up window", "floor lead", "service pt 1", "service pt 1", "service pt 2", "service pt 2", "meetings/programs"]
+		hours = ["", "9-11", "11-1", "1-2", "2-4", "4-6", "6-8"]
+		
+		preview_text = [hours]
+		for l in range(len(self.rows)):
+			temp_table = []
+			temp_table.append(locations[l])
+			for n in list(self.rows[l]):
+				temp_table.append(n)
+			preview_text.append(temp_table)
+		pprint(preview_text)
+
+		self.preview_text_box.configure(state="disabled")
+		
+		self.db_conn.close()
+
+
+def init_db(db_type):
+	db_loc = f"data/{db_type}.db"
+	conn = sqlite3.connect(db_loc)
+	cursor = conn.cursor()
+
+	query = {
+		"employees": """
+				CREATE TABLE IF NOT EXISTS EMPLOYEES (
+						First_Name CHAR(25) NOT NULL,
+						Last_Name CHAR(25) NOT NULL,
+						Position CHAR(25) NOT NULL,
+						Start_Time CHAR(5) NOT NULL,
+						End_Time CHAR(5) NOT NULL
+				);
+		""",
+		"template": """
+				CREATE TABLE IF NOT EXISTS TEMPLATE (
+						NINE_ELEVEN CHAR(50),
+						ELEVEN_ONE CHAR(50),
+						ONE_TWO CHAR(50),
+						TWO_FOUR CHAR(50),
+						FOUR_SIX CHAR(50),
+						SIX_EIGHT CHAR(50)
+				);
+		"""
+	}
+
+	cursor.execute(query[db_type])
+
+	conn.commit()
+	conn.close()
 
 if __name__ == "__main__":
-  ctk.set_default_color_theme("blue")
-  app = App()
-  app.mainloop()
+	init_db("employees")
+	init_db("template")
+	ctk.set_default_color_theme("blue")
+	app = App()
+	app.mainloop()
