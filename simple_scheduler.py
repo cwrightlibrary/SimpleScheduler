@@ -87,9 +87,9 @@ class MainApp(ctk.CTkFrame):
 		self.select_day_combobox.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
 		self.leave_frame = ctk.CTkFrame(self)
-		self.leave_frame.grid(row=3, column=0, padx=5, pady=5, sticky="new")
+		self.leave_frame.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
 
-		self.leave_frame.columnconfigure((0, 1, 2, 3, 4), weight=1)
+		self.leave_frame.columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
 		self.leave_frame.rowconfigure((0, 1, 2, 3, 4), weight=1)
 
 		self.leave_label = ctk.CTkLabel(self.leave_frame, text="Who's off?")
@@ -121,8 +121,22 @@ class MainApp(ctk.CTkFrame):
 		self.end_minute_selector = ctk.CTkComboBox(self.leave_frame, values=["00", "15", "30", "45"])
 		self.end_minute_selector.grid(row=2, column=4, padx=5, pady=5, sticky="ew")
 
-		self.all_day_checkbox = ctk.CTkCheckBox(self.leave_frame, text="All day?")
-		self.all_day_checkbox.grid(row=3, column=0, columnspan=5, padx=5, pady=5, sticky="ew")
+		self.all_day_checkbox = ctk.CTkCheckBox(self.leave_frame, text="All day?", command=self.toggle_time_inputs)
+		self.all_day_checkbox.grid(row=3, column=0, padx=5, pady=5, sticky="ew")
+
+		self.employees_off = []
+
+		self.employees_off_menu = ctk.CTkOptionMenu(self.leave_frame, values=self.employees_off)
+		self.employees_off_menu.grid(row=3, column=1, columnspan=3, padx=5, pady=5, sticky="ew")
+
+		self.remove_employee_button = ctk.CTkButton(self.leave_frame, text="Remove Employee", command=self.remove_employee)
+		self.remove_employee_button.grid(row=3, column=4, padx=5, pady=5, sticky="ew")
+
+		self.add_employee_button = ctk.CTkButton(self.leave_frame, text="Add", command=self.add_employee_leave)
+		self.add_employee_button.grid(row=4, column=0, columnspan=5, padx=5, pady=5, sticky="ew")
+
+		self.programs_meetings_frame = ctk.CTkFrame(self)
+		self.programs_meetings_frame.grid(row=3, column=1, padx=5, pady=5, sticky="nsew")
 	
 	def get_employees(self):
 		conn = sqlite3.connect("data/employees.db")
@@ -134,6 +148,30 @@ class MainApp(ctk.CTkFrame):
 		conn.close()
 
 		return rows
+
+	def toggle_time_inputs(self):
+		if self.all_day_checkbox.get():
+			self.start_hour_selector.configure(state="disabled")
+			self.start_minute_selector.configure(state="disabled")
+			self.end_hour_selector.configure(state="disabled")
+			self.end_minute_selector.configure(state="disabled")
+		else:
+			self.start_hour_selector.configure(state="normal")
+			self.start_minute_selector.configure(state="normal")
+			self.end_hour_selector.configure(state="normal")
+			self.end_minute_selector.configure(state="normal")
+	
+	def add_employee_leave(self):
+		if self.all_day_checkbox.get():
+			self.employees_off.append(f"{self.employee_name_selector.get()}: All day")
+		else:
+			self.employees_off.append(f"{self.employee_name_selector.get()}: {self.start_hour_selector.get()}:{self.start_minute_selector.get()}-{self.end_hour_selector.get()}:{self.end_minute_selector.get()}")
+		self.employees_off_menu.configure(values=self.employees_off)
+	
+	def remove_employee(self):
+		if self.employees_off_menu.get():
+			self.employees_off.remove(self.employees_off_menu.get())
+		self.employees_off_menu.configure(values=self.employees_off)
 
 
 class AddEmployee(ctk.CTkToplevel):
