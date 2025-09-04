@@ -26,7 +26,7 @@ class App(ctk.CTk):
 		self.sidebar_frame = ctk.CTkFrame(self)
 		self.sidebar_frame.grid(row=0, column=0, padx=(5, 2.5), pady=5, sticky="nsew")
 		self.sidebar_frame.columnconfigure(0, weight=1)
-		self.sidebar_frame.rowconfigure((0, 1, 2, 3, 4, 5), weight=1)
+		self.sidebar_frame.rowconfigure((0, 1, 2, 3, 4, 5), weight=0)
 
 		self.sidebar_label = ctk.CTkLabel(self.sidebar_frame, text="Tools")
 		self.sidebar_label.grid(row=0, column=0, padx=5, pady=5, sticky="new")
@@ -47,14 +47,8 @@ class App(ctk.CTk):
 		self.toggle_theme_button = ctk.CTkButton(self.sidebar_frame, text="Toggle theme", command=self.toggle_theme)
 		self.toggle_theme_button.grid(row=5, column=0, padx=5, pady=5, sticky="sew")
 
-		self.main_frame = ctk.CTkFrame(self)
+		self.main_frame = MainApp(self)
 		self.main_frame.grid(row=0, column=1, columnspan=10, padx=(2.5, 5), pady=5, sticky="nsew")
-		self.main_frame.columnconfigure((0, 1, 2, 3), weight=1)
-		self.main_frame.rowconfigure((0, 1, 2, 3), weight=1)
-
-		self.title_label = ctk.CTkLabel(self.main_frame, text="Simple Scheduler")
-		self.title_label.grid(row=0, column=0, columnspan=4, padx=5, pady=5, sticky="new")
-		self.title_label.cget("font").configure(size=14)
 	
 	def add_employee_subwindow(self):
 		AddEmployee(self)
@@ -74,6 +68,72 @@ class App(ctk.CTk):
 		elif self.theme_choice == "dark":
 			self.theme_choice = "light"
 		ctk.set_appearance_mode(self.theme_choice)
+
+
+class MainApp(ctk.CTkFrame):
+	def __init__(self, master=None):
+		super().__init__(master)
+		self.columnconfigure((0, 1), weight=1)
+		self.rowconfigure((0, 1, 2, 3), weight=1)
+
+		self.title_label = ctk.CTkLabel(self, text="Simple Scheduler")
+		self.title_label.grid(row=0, column=0, columnspan=4, padx=5, pady=5, sticky="new")
+		self.title_label.cget("font").configure(size=14)
+
+		self.select_day_label = ctk.CTkLabel(self, text="Select day")
+		self.select_day_label.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+		self.select_day_combobox = ctk.CTkComboBox(self, values=["Tuesday"])
+		self.select_day_combobox.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+
+		self.leave_frame = ctk.CTkFrame(self)
+		self.leave_frame.grid(row=3, column=0, padx=5, pady=5, sticky="new")
+
+		self.leave_frame.columnconfigure((0, 1, 2, 3, 4), weight=1)
+		self.leave_frame.rowconfigure((0, 1, 2, 3, 4), weight=1)
+
+		self.leave_label = ctk.CTkLabel(self.leave_frame, text="Who's off?")
+		self.leave_label.grid(row=0, column=0, columnspan=5, padx=5, pady=5, sticky="new")
+
+		self.names = self.get_employees()
+
+		self.raw_names = self.get_employees()
+		self.names = []
+
+		for name in self.raw_names:
+			self.names.append(list(name)[0])
+		
+		self.employee_name_selector = ctk.CTkComboBox(self.leave_frame, values=self.names)
+		self.employee_name_selector.grid(row=1, column=0, columnspan=5, padx=5, pady=5, sticky="ew")
+
+		self.start_hour_selector = ctk.CTkComboBox(self.leave_frame, values=["9", "10", "11", "12", "1", "2", "3", "4", "5", "6", "7", "8"])
+		self.start_hour_selector.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
+
+		self.start_minute_selector = ctk.CTkComboBox(self.leave_frame, values=["00", "15", "30", "45"])
+		self.start_minute_selector.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+
+		self.time_divider_label = ctk.CTkLabel(self.leave_frame, text="-")
+		self.time_divider_label.grid(row=2, column=2, padx=5, pady=5, sticky="ew")
+
+		self.end_hour_selector = ctk.CTkComboBox(self.leave_frame, values=["9", "10", "11", "12", "1", "2", "3", "4", "5", "6", "7", "8"])
+		self.end_hour_selector.grid(row=2, column=3, padx=5, pady=5, sticky="ew")
+
+		self.end_minute_selector = ctk.CTkComboBox(self.leave_frame, values=["00", "15", "30", "45"])
+		self.end_minute_selector.grid(row=2, column=4, padx=5, pady=5, sticky="ew")
+
+		self.all_day_checkbox = ctk.CTkCheckBox(self.leave_frame, text="All day?")
+		self.all_day_checkbox.grid(row=3, column=0, columnspan=5, padx=5, pady=5, sticky="ew")
+	
+	def get_employees(self):
+		conn = sqlite3.connect("data/employees.db")
+		cursor = conn.cursor()
+
+		cursor.execute("SELECT First_Name FROM EMPLOYEES")
+		rows = cursor.fetchall()
+
+		conn.close()
+
+		return rows
 
 
 class AddEmployee(ctk.CTkToplevel):
@@ -98,13 +158,13 @@ class AddEmployee(ctk.CTkToplevel):
 		self.label_first_name = ctk.CTkLabel(self, text="First Name")
 		self.label_first_name.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
 
-		self.entry_first_name = ctk.CTkEntry(self, placeholder_text="Chris")
+		self.entry_first_name = ctk.CTkEntry(self, placeholder_text="Jane")
 		self.entry_first_name.grid(row=1, column=1, columnspan=2, padx=5, pady=5, sticky="ew")
 
 		self.label_last_name = ctk.CTkLabel(self, text="Last Name")
 		self.label_last_name.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
 
-		self.entry_last_name = ctk.CTkEntry(self, placeholder_text="Wright")
+		self.entry_last_name = ctk.CTkEntry(self, placeholder_text="Doe")
 		self.entry_last_name.grid(row=2, column=1, columnspan=2, padx=5, pady=5, sticky="ew")
 
 		self.label_position = ctk.CTkLabel(self, text="Position")
@@ -167,7 +227,7 @@ class AddTemplate(ctk.CTkToplevel):
 	def __init__(self, master=None):
 		super().__init__(master)
 		self.title("Add Template")
-		self.geometry("800x400")
+		self.geometry("1000x600")
 
 		self.lift()
 		self.focus_force()
@@ -190,17 +250,24 @@ class AddTemplate(ctk.CTkToplevel):
 		]
 		self.input_contents = []
 
+		self.raw_names = self.get_employees()
+		self.names = [""]
+
+		for name in self.raw_names:
+			self.names.append(list(name)[0])
+
 		for h in range(len(self.headers)):
 			locations = []
 			if h > 0:
 				location_label = ctk.CTkLabel(self, text=self.headers[h])
 				location_label.grid(row=1, column=h, padx=5, pady=5, sticky="ew")
+				location_label.cget("font").configure(size=14)
 			for l in range(len(self.locations) - 1):
 				if h == 0:
 					location_label = ctk.CTkLabel(self, text=self.locations[l])
 					location_label.grid(row=l+2, column=h, padx=5, pady=5, sticky="ew")
 				else:
-					location_entry = ctk.CTkEntry(self, placeholder_text="First Name")
+					location_entry = ctk.CTkComboBox(self, values=self.names)
 					location_entry.grid(row=l+2, column=h, padx=5, pady=5, sticky="ew")
 					locations.append(location_entry)
 			self.input_contents.append(locations)
@@ -228,17 +295,34 @@ class AddTemplate(ctk.CTkToplevel):
 		conn.commit()
 		conn.close()
 		self.destroy()
+	
+	def get_employees(self):
+		conn = sqlite3.connect("data/employees.db")
+		cursor = conn.cursor()
+
+		cursor.execute("SELECT First_Name FROM EMPLOYEES WHERE Position IN ('Manager', 'Assistant Manager', 'Supervisor', 'Full-time', 'Part-time')")
+		rows = cursor.fetchall()
+
+		conn.close()
+
+		return rows
 
 
 class ShowEmployee(ctk.CTkToplevel):
 	def __init__(self, master=None):
 		super().__init__(master)
 		self.title("Show Employees")
-		self.geometry("400x300")
+		self.geometry("400x500")
 
 		self.lift()
 		self.focus_force()
 		self.grab_set()
+
+		self.columnconfigure(0, weight=1)
+		self.rowconfigure(0, weight=1)
+
+		self.preview_text_box = ctk.CTkTextbox(self, wrap="none")
+		self.preview_text_box.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
 		self.db_conn = sqlite3.connect("data/employees.db")
 		self.db_cursor = self.db_conn.cursor()
@@ -247,7 +331,11 @@ class ShowEmployee(ctk.CTkToplevel):
 		self.rows = self.db_cursor.fetchall()
 
 		for row in self.rows:
-			print(row)
+			row_info = list(row)
+			line = f"{row_info[0]} {row_info[1]}, {row_info[2]} ({row_info[3]}-{row_info[4]})\n"
+			self.preview_text_box.insert("end", line)
+		
+		self.preview_text_box.configure(state="disabled")
 		
 		self.db_conn.close()
 
