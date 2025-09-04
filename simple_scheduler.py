@@ -2,7 +2,6 @@ import sqlite3
 import customtkinter as ctk
 
 from pprint import pprint
-from prettytable import PrettyTable
 
 
 class App(ctk.CTk):
@@ -273,6 +272,7 @@ class MainApp(ctk.CTkFrame):
 		self.programs_meetings_end_minute_selector.set("00")
 	
 	def create_schedule(self):
+		print(self.select_day_combobox.get())
 		print(self.employees_off)
 		pprint(self.programs_meetings)
 
