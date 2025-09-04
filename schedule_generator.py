@@ -4,11 +4,6 @@ from docx import Document
 from pprint import pprint
 from prettytable import PrettyTable
 
-example_weekday = "Tuesday"
-example_date = "September 2, 2025"
-example_leave = ['Yami: All day', 'Marion: All day']
-example_programs_meetings = ['9:15-10:15: Meeting (Michelle, Lea)', '2:00-3:00: Meeting (Michelle, Rod)']
-
 class CreateDocx:
 	def __init__(self, weekday: str, date: str, leave: list=[], programs_meetings: list=[]):
 		# store our arguments
@@ -30,13 +25,39 @@ class CreateDocx:
 		# assign the template
 		for value, key in enumerate(table_values):
 			self.assign_tables(key, value)
+		
+		self.full_time_employees = self.load_employees_by_position("ft")
+		self.part_time_employees = self.load_employees_by_position("pt")
+		self.shelver_employees = self.load_employees_by_position("sh")
+		self.security_employees = self.load_employees_by_position("sc")
 
+		self.adjust_for_leave()
 	
 	def load_db(self, kind: str):
 		conn = sqlite3.connect(f"data/{kind}.db")
 		cursor = conn.cursor()
 
-		cursor.execute(f"SELECT * FROM {kind.upper()}")
+		cursor.execute(f"SELECT * FROM {kind.upper()};")
+		rows = cursor.fetchall()
+
+		output_rows = []
+		for row in rows:
+			output_rows.append(list(row))
+		
+		return output_rows
+	
+	def load_employees_by_position(self, position: str):
+		conn = sqlite3.connect("data/employees.db")
+		cursor = conn.cursor()
+
+		position_lut = {
+			"ft": "SELECT * FROM EMPLOYEES WHERE Position IN ('Manager', 'Assistant Manager', 'Supervisor', 'Full-time');",
+			"pt": "SELECT * FROM EMPLOYEES WHERE Position ='Part-time';",
+			"sh": "SELECT * FROM EMPLOYEES WHERE Position = 'Shelver';",
+			"sc": "SELECT * FROM EMPLOYEES WHERE Position IN ('Security Full-time', 'Security Part-time');"
+		}
+
+		cursor.execute(position_lut[position])
 		rows = cursor.fetchall()
 
 		output_rows = []
@@ -54,6 +75,26 @@ class CreateDocx:
 			date_paragraph.runs[5].text = self.date.split()[2]
 		else:
 			date_paragraph.add_run(f"{self.weekday}, {self.date}")
+	
+	def adjust_for_leave(self):
+		leave = []
+		for l in self.leave:
+			name = l.replace(":", "").split()[0]
+			hours = l.split()[1] if l.split()[1] != "All" else "0"
+			new_item = [name, hours]
+			leave.append(new_item)
+		print(leave)
+		# pprint(self.full_time_employees)
+
+		for i in leave:
+			if i[1] == "0":
+				for e in self.full_time_employees:
+					if e[0] == i[0]:
+						self.full_time_employees.remove(e)
+					else:
+						pass
+		
+		pprint(self.full_time_employees)
 
 	def assign_tables(self, key, value):
 		location = self.document.tables[0].rows[key]
@@ -113,10 +154,10 @@ def init_dbs():
 	init_db("employees")
 	init_db("template")
 
-# for table in doc.tables:
-# 	for row in table.rows:
-# 		row_data = [cell.text.strip() for cell in row.cells]
-# 		print(row_data)
+example_weekday = "Tuesday"
+example_date = "September 2, 2025"
+example_leave = ['Yami: All day', 'Marion: All day', 'Chris: 9:00-12:00']
+example_programs_meetings = ['9:15-10:15: Meeting (Michelle, Lea)', '2:00-3:00: Meeting (Michelle, Rod)']
 
 if __name__ == "__main__":
 	init_dbs()
