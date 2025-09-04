@@ -22,10 +22,15 @@ class CreateDocx:
 		self.employees = self.load_db("employees")
 		self.template = self.load_db("template")
 
-		pprint(self.template)
-
 		# set the date
 		self.set_document_date()
+
+		table_values = [5, 6, 8, 9, 11, 12, 15]
+
+		# assign the template
+		for value, key in enumerate(table_values):
+			self.assign_tables(key, value)
+
 	
 	def load_db(self, kind: str):
 		conn = sqlite3.connect(f"data/{kind}.db")
@@ -49,6 +54,24 @@ class CreateDocx:
 			date_paragraph.runs[5].text = self.date.split()[2]
 		else:
 			date_paragraph.add_run(f"{self.weekday}, {self.date}")
+
+	def assign_tables(self, key, value):
+		location = self.document.tables[0].rows[key]
+		
+		seen = set()
+		seen_list = []
+		for cell in location.cells:
+			for paras in cell.paragraphs:
+				for cell_text in paras.runs:
+					if cell._tc not in seen:
+						seen.add(cell._tc)
+						seen_list.append(cell._tc)
+						idx = seen_list.index(cell._tc)
+						if idx > 0:
+							if not self.template[value][idx - 1]:
+								cell_text.text = ""
+							else:
+								cell_text.text = self.template[value][idx - 1]
 
 	def save(self, filename):
 		self.document.save(f"out/{filename}.docx")
