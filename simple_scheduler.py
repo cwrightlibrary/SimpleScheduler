@@ -10,7 +10,7 @@ class App(ctk.CTk):
 		super().__init__()
 		# window info
 		self.title("Simple Scheduler")
-		self.geometry("800x600")
+		self.geometry("1450x750")
 
 		self.lift()
 		self.focus_force()
@@ -20,7 +20,7 @@ class App(ctk.CTk):
 		ctk.set_appearance_mode(self.theme_choice)
 
 		# configure grid
-		self.columnconfigure((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), weight=1)
+		self.columnconfigure((0, 1, 2), weight=1)
 		self.rowconfigure(0, weight=1)
 
 		self.sidebar_frame = ctk.CTkFrame(self)
@@ -48,7 +48,7 @@ class App(ctk.CTk):
 		self.toggle_theme_button.grid(row=5, column=0, padx=5, pady=5, sticky="sew")
 
 		self.main_frame = MainApp(self)
-		self.main_frame.grid(row=0, column=1, columnspan=10, padx=(2.5, 5), pady=5, sticky="nsew")
+		self.main_frame.grid(row=0, column=1, columnspan=2, padx=(2.5, 5), pady=5, sticky="nsew")
 	
 	def add_employee_subwindow(self):
 		AddEmployee(self)
@@ -80,17 +80,23 @@ class MainApp(ctk.CTkFrame):
 		self.title_label.grid(row=0, column=0, columnspan=4, padx=5, pady=5, sticky="new")
 		self.title_label.cget("font").configure(size=14)
 
-		self.select_day_label = ctk.CTkLabel(self, text="Select day")
-		self.select_day_label.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+		self.date_frame = ctk.CTkFrame(self)
+		self.date_frame.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
 
-		self.select_day_combobox = ctk.CTkComboBox(self, values=["Tuesday"])
-		self.select_day_combobox.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
+		self.date_frame.columnconfigure(0, weight=1)
+		self.date_frame.rowconfigure((0, 1), weight=1)
+
+		self.select_day_label = ctk.CTkLabel(self.date_frame, text="Select day")
+		self.select_day_label.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+
+		self.select_day_combobox = ctk.CTkComboBox(self.date_frame, values=["Tuesday"])
+		self.select_day_combobox.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
 
 		self.leave_frame = ctk.CTkFrame(self)
-		self.leave_frame.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
+		self.leave_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
 
-		self.leave_frame.columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
-		self.leave_frame.rowconfigure((0, 1, 2, 3, 4), weight=1)
+		self.leave_frame.columnconfigure((0, 1, 2, 3, 4), weight=1)
+		self.leave_frame.rowconfigure((0, 1, 2, 3), weight=1)
 
 		self.leave_label = ctk.CTkLabel(self.leave_frame, text="Who's off?")
 		self.leave_label.grid(row=0, column=0, columnspan=5, padx=5, pady=5, sticky="new")
@@ -102,6 +108,8 @@ class MainApp(ctk.CTkFrame):
 
 		for name in self.raw_names:
 			self.names.append(list(name)[0])
+		
+		self.names = sorted(self.names)
 		
 		self.employee_name_selector = ctk.CTkComboBox(self.leave_frame, values=self.names)
 		self.employee_name_selector.grid(row=1, column=0, columnspan=5, padx=5, pady=5, sticky="ew")
@@ -127,16 +135,70 @@ class MainApp(ctk.CTkFrame):
 		self.employees_off = []
 
 		self.employees_off_menu = ctk.CTkOptionMenu(self.leave_frame, values=self.employees_off)
-		self.employees_off_menu.grid(row=3, column=1, columnspan=3, padx=5, pady=5, sticky="ew")
+		self.employees_off_menu.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
+		self.employees_off_menu.set("")
 
-		self.remove_employee_button = ctk.CTkButton(self.leave_frame, text="Remove Employee", command=self.remove_employee)
-		self.remove_employee_button.grid(row=3, column=4, padx=5, pady=5, sticky="ew")
+		self.remove_employee_button = ctk.CTkButton(self.leave_frame, text="Remove", command=self.remove_employee)
+		self.remove_employee_button.grid(row=3, column=2, columnspan=3, padx=5, pady=5, sticky="ew")
 
 		self.add_employee_button = ctk.CTkButton(self.leave_frame, text="Add", command=self.add_employee_leave)
 		self.add_employee_button.grid(row=4, column=0, columnspan=5, padx=5, pady=5, sticky="ew")
 
 		self.programs_meetings_frame = ctk.CTkFrame(self)
-		self.programs_meetings_frame.grid(row=3, column=1, padx=5, pady=5, sticky="nsew")
+		self.programs_meetings_frame.grid(row=2, column=1, padx=5, pady=5, sticky="nsew")
+
+		self.programs_meetings_frame.columnconfigure((0, 1, 2, 3, 4), weight=1)
+		self.programs_meetings_frame.rowconfigure((0, 1, 2, 3, 4), weight=1)
+
+		self.programs_meetings_label = ctk.CTkLabel(self.programs_meetings_frame, text="Any Programs or Meetings?")
+		self.programs_meetings_label.grid(row=0, column=0, columnspan=5, padx=5, pady=5, sticky="new")
+
+		self.programs_meetings_title_entry = ctk.CTkEntry(self.programs_meetings_frame, placeholder_text="Program name")
+		self.programs_meetings_title_entry.grid(row=1, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
+
+		self.programs_meetings_checkbox = ctk.CTkCheckBox(self.programs_meetings_frame, text="Meeting", command=self.meeting_toggle)
+		self.programs_meetings_checkbox.grid(row=1, column=4, padx=5, pady=5, sticky="ew")
+
+		self.programs_meetings_names_selector = ctk.CTkComboBox(self.programs_meetings_frame, values=self.names)
+		self.programs_meetings_names_selector.grid(row=2, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
+
+		self.programs_meetings_add_name_button = ctk.CTkButton(self.programs_meetings_frame, text="Add", command=self.add_employee_programs_meetings)
+		self.programs_meetings_add_name_button.grid(row=2, column=4, padx=5, pady=5, sticky="ew")
+
+		self.programs_meetings_employees = []
+		self.programs_meetings = []
+
+		self.programs_meetings_names_menu = ctk.CTkOptionMenu(self.programs_meetings_frame, values=self.programs_meetings_employees)
+		self.programs_meetings_names_menu.grid(row=3, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
+		self.programs_meetings_names_menu.set("")
+
+		self.programs_meetings_remove_name_button = ctk.CTkButton(self.programs_meetings_frame, text="Remove", command=self.remove_employee_programs_meetings)
+		self.programs_meetings_remove_name_button.grid(row=3, column=4, padx=5, pady=5, sticky="ew")
+
+		self.programs_meetings_start_hour_selector = ctk.CTkComboBox(self.programs_meetings_frame, values=["9", "10", "11", "12", "1", "2", "3", "4", "5", "6", "7", "8"])
+		self.programs_meetings_start_hour_selector.grid(row=4, column=0, padx=5, pady=5, sticky="ew")
+		self.programs_meetings_start_hour_selector.set("9")
+
+		self.programs_meetings_start_minute_selector = ctk.CTkComboBox(self.programs_meetings_frame, values=["00", "15", "30", "45"])
+		self.programs_meetings_start_minute_selector.grid(row=4, column=1, padx=5, pady=5, sticky="ew")
+		self.programs_meetings_start_minute_selector.set("00")
+
+		self.programs_meetings_time_divider_label = ctk.CTkLabel(self.programs_meetings_frame, text="-")
+		self.programs_meetings_time_divider_label.grid(row=4, column=2, padx=5, pady=5, sticky="ew")
+
+		self.programs_meetings_end_hour_selector = ctk.CTkComboBox(self.programs_meetings_frame, values=["9", "10", "11", "12", "1", "2", "3", "4", "5", "6", "7", "8"])
+		self.programs_meetings_end_hour_selector.grid(row=4, column=3, padx=5, pady=5, sticky="ew")
+		self.programs_meetings_end_hour_selector.set("12")
+
+		self.programs_meetings_end_minute_selector = ctk.CTkComboBox(self.programs_meetings_frame, values=["00", "15", "30", "45"])
+		self.programs_meetings_end_minute_selector.grid(row=4, column=4, padx=5, pady=5, sticky="ew")
+		self.programs_meetings_end_minute_selector.set("00")
+
+		self.programs_meetings_add_button = ctk.CTkButton(self.programs_meetings_frame, text="Add", command=self.add_program_meeting)
+		self.programs_meetings_add_button.grid(row=5, column=0, columnspan=5, padx=5, pady=5, sticky="ew")
+
+		self.create_schedule_button = ctk.CTkButton(self, text="Create Schedule", command=self.create_schedule)
+		self.create_schedule_button.grid(row=3, column=1, padx=5, pady=5, sticky="nsew")
 	
 	def get_employees(self):
 		conn = sqlite3.connect("data/employees.db")
@@ -166,12 +228,53 @@ class MainApp(ctk.CTkFrame):
 			self.employees_off.append(f"{self.employee_name_selector.get()}: All day")
 		else:
 			self.employees_off.append(f"{self.employee_name_selector.get()}: {self.start_hour_selector.get()}:{self.start_minute_selector.get()}-{self.end_hour_selector.get()}:{self.end_minute_selector.get()}")
+		self.employees_off_menu.set(self.employees_off[-1])
 		self.employees_off_menu.configure(values=self.employees_off)
 	
 	def remove_employee(self):
 		if self.employees_off_menu.get():
 			self.employees_off.remove(self.employees_off_menu.get())
+		if len(self.employees_off) == 0:
+			self.employees_off_menu.set("")
+		else:
+			self.employees_off_menu.set(self.employees_off[-1])
 		self.employees_off_menu.configure(values=self.employees_off)
+	
+	def meeting_toggle(self):
+		if self.programs_meetings_checkbox.get():
+			self.programs_meetings_title_entry.configure(state="disabled")
+		else:
+			self.programs_meetings_title_entry.configure(state="normal")
+	
+	def add_employee_programs_meetings(self):
+		self.programs_meetings_employees.append(self.programs_meetings_names_selector.get())
+		self.programs_meetings_names_menu.set(", ".join(self.programs_meetings_employees))
+		self.programs_meetings_names_menu.configure(values=self.programs_meetings_employees)
+	
+	def remove_employee_programs_meetings(self):
+		if self.programs_meetings_names_menu.get():
+			self.programs_meetings_employees.remove(self.programs_meetings_names_menu.get())
+		if len(self.programs_meetings_employees) == 0:
+			self.programs_meetings_names_menu.set("")
+		else:
+			self.programs_meetings_names_menu.set(", ".join(self.programs_meetings_employees))
+		self.programs_meetings_names_menu.configure(values=self.programs_meetings_employees)
+	
+	def add_program_meeting(self):
+		if self.programs_meetings_title_entry.get() or self.programs_meetings_checkbox.get():
+			if self.programs_meetings_checkbox.get():
+				self.programs_meetings.append(f"{self.programs_meetings_start_hour_selector.get()}:{self.programs_meetings_start_minute_selector.get()}-{self.programs_meetings_end_hour_selector.get()}:{self.programs_meetings_end_minute_selector.get()}: Meeting ({', '.join(self.programs_meetings_employees)})")
+		self.programs_meetings_employees = []
+		self.programs_meetings_names_menu.set("")
+		self.programs_meetings_names_menu.configure(values=self.programs_meetings_employees)
+		self.programs_meetings_start_hour_selector.set("9")
+		self.programs_meetings_start_minute_selector.set("00")
+		self.programs_meetings_end_hour_selector.set("12")
+		self.programs_meetings_end_minute_selector.set("00")
+	
+	def create_schedule(self):
+		print(self.employees_off)
+		pprint(self.programs_meetings)
 
 
 class AddEmployee(ctk.CTkToplevel):
