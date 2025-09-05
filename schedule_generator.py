@@ -26,9 +26,15 @@ class CreateDocx:
 		for value, key in enumerate(table_values):
 			self.assign_tables(key, value)
 		
-		self.full_time_employees = self.load_employees_by_position("ft")
-		self.part_time_employees = self.load_employees_by_position("pt")
-		self.shelver_employees = self.load_employees_by_position("sh")
+		self.full_time_employees_day = self.load_employees_by_position("ft", "day")
+		self.full_time_employees_close = self.load_employees_by_position("ft", "close")
+		self.full_time_employees = self.full_time_employees_day + self.full_time_employees_close
+
+		self.part_time_employees_day = self.load_employees_by_position("pt", "day")
+		self.part_time_employees_close = self.load_employees_by_position("pt", "close")
+		self.part_time_employees = self.part_time_employees_day + self.part_time_employees_close
+
+		self.shelver_employees = self.load_employees_by_position("sh", "close")
 		self.security_employees = self.load_employees_by_position("sc")
 
 		self.adjust_for_leave()
@@ -46,16 +52,26 @@ class CreateDocx:
 		
 		return output_rows
 	
-	def load_employees_by_position(self, position: str):
+	def load_employees_by_position(self, position: str, shift: str = ""):
 		conn = sqlite3.connect("data/employees.db")
 		cursor = conn.cursor()
 
 		position_lut = {
 			"ft": "SELECT * FROM EMPLOYEES WHERE Position IN ('Manager', 'Assistant Manager', 'Supervisor', 'Full-time');",
-			"pt": "SELECT * FROM EMPLOYEES WHERE Position ='Part-time';",
+			"pt": "SELECT * FROM EMPLOYEES WHERE Position = 'Part-time';",
 			"sh": "SELECT * FROM EMPLOYEES WHERE Position = 'Shelver';",
 			"sc": "SELECT * FROM EMPLOYEES WHERE Position IN ('Security Full-time', 'Security Part-time');"
 		}
+
+		if position == "ft" and shift == "day":
+			position_lut[position] = "SELECT * FROM EMPLOYEES WHERE Position IN ('Manager', 'Assistant Manager', 'Supervisor', 'Full-time') AND Start_time = '9:00';"
+		elif position == "ft" and shift == "close":
+			position_lut[position] = "SELECT * FROM EMPLOYEES WHERE Position IN ('Manager', 'Assistant Manager', 'Supervisor', 'Full-time') AND End_time = '8:00';"
+		
+		if position == "pt" and shift == "day":
+			position_lut[position] =  "SELECT * FROM EMPLOYEES WHERE Position = 'Part-time' AND Start_time = '9:00';"
+		elif position == "pt" and shift == "close":
+			position_lut[position] = "SELECT * FROM EMPLOYEES WHERE Position = 'Part-time' AND End_time = '8:00';"
 
 		cursor.execute(position_lut[position])
 		rows = cursor.fetchall()
