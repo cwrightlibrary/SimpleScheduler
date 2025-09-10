@@ -1,6 +1,9 @@
+import calendar
 import customtkinter as ctk
 import sqlite3
 import tkinter as tk
+
+from datetime import datetime
 
 class App(ctk.CTk):
 	def __init__(self):
@@ -46,9 +49,12 @@ class App(ctk.CTk):
 
 		self.tabview = ctk.CTkTabview(self)
 		self.tabview.grid(row=0, column=1, columnspan=2, padx=20, pady=20, sticky="nsew")
+
 		self.tabview.add("Date")
 		self.tabview.add("Leave")
 		self.tabview.add("Programs & Meetings")
+
+		self.draw_date_tabview()
 
 		self.previous_button = ctk.CTkButton(self, text="Previous", command=self.previous_tabview)
 		self.previous_button.grid(row=1, column=1, padx=20, pady=20, sticky="sw")
@@ -89,7 +95,6 @@ class App(ctk.CTk):
 		self.menubar.add_cascade(label="View", menu=self.view_menu)
 
 		self.view_menu.add_command(label="Show Employees", command=self.show_employees_subwindow)
-		self.view_menu.add_command(label="Show Template", command=self.show_template_subwindow)
 
 		self.help_menu = tk.Menu(self.menubar, tearoff=0, bg=bg_color, fg=fg_color, activebackground=active_bg, activeforeground=active_fg, relief="flat")
 		self.menubar.add_cascade(label="Help", menu=self.help_menu)
@@ -104,9 +109,6 @@ class App(ctk.CTk):
 
 	def show_employees_subwindow(self):
 		ShowEmployees()
-
-	def show_template_subwindow(self):
-		pass
 
 	def show_about(self):
 		pass
@@ -128,36 +130,108 @@ class App(ctk.CTk):
 	def next_tabview(self):
 		if self.tabview.index(self.tabview.get()) < len(self.tabview_options) - 1:
 			self.tabview.set(self.tabview_options[self.tabview.index(self.tabview.get()) + 1])
+	
+	def draw_date_tabview(self):
+		self.tabview.tab("Date").grid_columnconfigure((0, 1, 2, 3), weight=1)
+		self.tabview.tab("Date").grid_rowconfigure((0, 1, 2), weight=1)
+
+		self.date_label = ctk.CTkLabel(self.tabview.tab("Date"), text="Select the Date", font=ctk.CTkFont(size=20, weight="bold"))
+		self.date_label.grid(row=0, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
+
+		self.weekday_label = ctk.CTkLabel(self.tabview.tab("Date"), text="Pick the date")
+		self.weekday_label.grid(row=1, column=0, padx=10, pady=10, sticky="e")
+
+		months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+		
+		year = datetime.now().year
+		month = months[datetime.now().month]
+		day = datetime.now().day
+
+		amount_days = {m: calendar.monthrange(year, m)[1] for m in range(1, 13)}
+		current_days = amount_days[datetime.now().month]
+
+		self.month_picker = ctk.CTkOptionMenu(self.tabview.tab("Date"), values=months)
+		self.month_picker.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+		self.month_picker.set(month)
+
+		self.day_picker = ctk.CTkOptionMenu(self.tabview.tab("Date"), values=[i for i in range(current_days)])
+		self.day_picker.grid(row=1, column=2, padx=10, pady=10, sticky="ew")
+		self.day_picker.set(str(day))
+
+		self.weekend_label = ctk.CTkLabel(self.tabview.tab("Date"), text="Who's weekday?")
+		self.weekend_label.grid(row=2, column=0, padx=10, pady=10, sticky="e")
+
+		self.weekend_picker = ctk.CTkOptionMenu(self.tabview.tab("Date"), values=["Michelle", "Rod", "Lea"])
+		self.weekend_picker.grid(row=2, column=1, padx=10, pady=10, sticky="w")
+		self.weekend_picker.configure(state="disabled")
+	
+	def chosen_weekday(self, weekday: str):
+		if weekday in ["Friday", "Saturday", "Sunday"]:
+			self.weekend_picker.configure(state="normal")
+		else:
+			self.weekend_picker.configure(state="disabled")
 
 
 class ShowEmployees(ctk.CTkToplevel):
 	def __init__(self, master=None):
 		super().__init__(master)
 		self.title("Employees")
-		self.geometry("400x500")
+		self.geometry("600x700")
 
 		self.lift()
 		self.focus_force()
 		self.grab_set()
 
-		self.grid_columnconfigure(0, weight=1)
-		self.grid_rowconfigure(0, weight=1)
-
-		self.preview_text_box = ctk.CTkTextbox(self, wrap="none")
-		self.preview_text_box.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-
 		self.db_conn = sqlite3.connect("data/employees.db")
 		self.db_cursor = self.db_conn.cursor()
 
-		self.db_cursor.execute("SELECT * FROM EMPLOYEES")
+		self.db_cursor.execute("SELECT * FROM EMPLOYEES ORDER BY CASE Position WHEN 'Manager' THEN 1 WHEN 'Assistant Manager' THEN 2 WHEN 'Supervisor' THEN 3 WHEN 'Full-time' THEN 4 WHEN 'Part-time' THEN 5 WHEN 'Shelver' THEN 6 WHEN 'Security Full-time' THEN 7 WHEN 'Security Part-time' THEN 8 ELSE 9 END;")
 		self.rows = self.db_cursor.fetchall()
 
-		for row in self.rows:
+		rows_len_tup = tuple(range(len(self.rows) + 1))
+
+		self.grid_columnconfigure((0, 1, 2), weight=1)
+		self.grid_rowconfigure(rows_len_tup, weight=1)
+
+		position_label = ctk.CTkLabel(self, text="Position")
+		position_label.grid(row=0, column=0, padx=(5, 2), pady=(5, 2))
+		position_label.cget("font").configure(weight="bold")
+
+		name_label = ctk.CTkLabel(self, text="Name")
+		name_label.grid(row=0, column=1, padx=5, pady=(5, 2))
+		name_label.cget("font").configure(weight="bold")
+
+		hours_label = ctk.CTkLabel(self, text="Hours")
+		hours_label.grid(row=0, column=2, padx=(2, 5), pady=(5, 2))
+		hours_label.cget("font").configure(weight="bold")
+
+		for i, row in enumerate(self.rows):
 			row_info = list(row)
-			line = f"{row_info[0]} {row_info[1]}, {row_info[2]} ({row_info[3]}-{row_info[4]})\n"
-			self.preview_text_box.insert("end", line)
-		
-		self.preview_text_box.configure(state="disabled")
+			position = row_info[2]
+			name = f"{row_info[0]} {row_info[1]}"
+			hours = f"{row_info[3]}-{row_info[4]}"
+
+			position_entry = ctk.CTkEntry(self, placeholder_text=position, placeholder_text_color=("black", "white"))
+			position_entry.configure(state="disabled")
+
+			name_entry = ctk.CTkEntry(self, placeholder_text=name, placeholder_text_color=("black", "white"), width=250)
+			name_entry.configure(state="disabled")
+
+			hours_entry = ctk.CTkEntry(self, placeholder_text=hours, placeholder_text_color=("black", "white"), width=100)
+			hours_entry.configure(state="disabled")
+
+			if i == 0:
+				position_entry.grid(row=i + 1, column=0, padx=(5, 2), pady=(5, 2))
+				name_entry.grid(row=i + 1, column=1, padx=2, pady=(5, 2))
+				hours_entry.grid(row=i + 1, column=2, padx=2, pady=(5, 2))
+			elif i == len(self.rows) + 1:
+				position_entry.grid(row=i + 1, column=0, padx=(5, 2), pady=(2, 5))
+				name_entry.grid(row=i + 1, column=1, padx=2, pady=(2, 5))
+				hours_entry.grid(row=i + 1, column=2, padx=(2, 5), pady=(2, 5))
+			else:
+				position_entry.grid(row=i + 1, column=0, padx=(5, 2), pady=2)
+				name_entry.grid(row=i + 1, column=1, padx=2, pady=2)
+				hours_entry.grid(row=i + 1, column=2, padx=2, pady=2)
 		
 		self.db_conn.close()
 
