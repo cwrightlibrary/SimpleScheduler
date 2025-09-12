@@ -4,13 +4,14 @@ import sqlite3
 import tkinter as tk
 
 from datetime import datetime
+from tkinter import ttk
 
 class App(ctk.CTk):
 	def __init__(self):
 		super().__init__()
 		self.title("Simple Scheduler")
 		self.base_width = 1000
-		self.base_height = 750
+		self.base_height = 825
 		self.current_scale = 1.0
 		self.apply_scale(self.current_scale)
 
@@ -203,13 +204,17 @@ class App(ctk.CTk):
 	
 	def draw_leave_tabview(self):
 		self.tabview.tab("Leave").grid_columnconfigure((0, 1, 2, 3), weight=1)
-		self.tabview.tab("Leave").grid_rowconfigure((3, 4), weight=1)
+		self.tabview.tab("Leave").grid_rowconfigure((0, 1, 2, 3, 4, 5), weight=0)
+		self.tabview.tab("Leave").grid_rowconfigure(6, weight=1)
 
 		self.leave_label = ctk.CTkLabel(self.tabview.tab("Leave"), text="Who's Off Today?", font=ctk.CTkFont(size=20, weight="bold"))
 		self.leave_label.grid(row=0, column=0, columnspan=4, padx=10, pady=(80, 10), sticky="nsew")
 
-		self.employee_leave_picker = ctk.CTkOptionMenu(self.tabview.tab("Leave"), values=self.employees_names)
-		self.employee_leave_picker.grid(row=1, column=0, columnspan=4, padx=10, pady=10, sticky="")
+		self.employee_leave_picker = ctk.CTkOptionMenu(self.tabview.tab("Leave"), values=self.employees_names, width=200)
+		self.employee_leave_picker.grid(row=1, column=1, columnspan=2, padx=10, pady=10, sticky="")
+
+		self.all_day_leave_checkbox = ctk.CTkCheckBox(self.tabview.tab("Leave"), text="All day?", command=self.toggle_leave_all_day)
+		self.all_day_leave_checkbox.grid(row=1, column= 3, padx=10, pady=10, sticky="w")
 
 		self.hour_values = []
 		if self.current_weekday in ["Friday", "Saturday"]:
@@ -220,13 +225,91 @@ class App(ctk.CTk):
 			self.hour_values = ["9", "10", "11", "12", "1", "2", "3", "4", "5", "6", "7", "8"]
 		
 		self.start_hour_leave_label = ctk.CTkLabel(self.tabview.tab("Leave"), text="Start time")
-		self.start_hour_leave_label.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
+		self.start_hour_leave_label.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="sew")
+
+		self.end_hour_leave_label = ctk.CTkLabel(self.tabview.tab("Leave"), text="End time")
+		self.end_hour_leave_label.grid(row=2, column=2, columnspan=2, padx=10, pady=10, sticky="sew")
 
 		self.start_hour_leave_picker = ctk.CTkOptionMenu(self.tabview.tab("Leave"), values=self.hour_values)
-		self.start_hour_leave_picker.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
+		self.start_hour_leave_picker.grid(row=3, column=0, padx=10, pady=10, sticky="new")
 		
 		self.start_minute_leave_picker = ctk.CTkOptionMenu(self.tabview.tab("Leave"), values=["00", "15", "30", "45"])
-		self.start_minute_leave_picker.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
+		self.start_minute_leave_picker.grid(row=3, column=1, padx=10, pady=10, sticky="new")
+
+		self.end_hour_leave_picker = ctk.CTkOptionMenu(self.tabview.tab("Leave"), values=self.hour_values)
+		self.end_hour_leave_picker.grid(row=3, column=2, padx=10, pady=10, sticky="new")
+		
+		self.end_minute_leave_picker = ctk.CTkOptionMenu(self.tabview.tab("Leave"), values=["00", "15", "30", "45"])
+		self.end_minute_leave_picker.grid(row=3, column=3, padx=10, pady=10, sticky="new")
+
+		self.add_leave_button = ctk.CTkButton(self.tabview.tab("Leave"), text="Add employee", command=self.add_leave)
+		self.add_leave_button.grid(row=4, column=1, columnspan=2, padx=10, pady=10, sticky="new")
+
+		self.added_leave_employees_frame = ctk.CTkScrollableFrame(self.tabview.tab("Leave"), label_text="Employees on leave")
+		self.added_leave_employees_frame.grid(row=5, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
+
+		self.added_leave_employees_frame.grid_columnconfigure(0, weight=1)
+		self.added_leave_employees_frame.grid_rowconfigure(0, weight=1)
+
+		self.employees_on_leave_list = []
+
+		self.create_leave_table()
+
+		self.remove_leave_button = ctk.CTkButton(self.tabview.tab("Leave"), text="Remove employee", command=self.remove_leave)
+		self.remove_leave_button.grid(row=6, column=1, columnspan=2, padx=10, pady=10, sticky="sew")
+	
+	def create_leave_table(self):
+		columns = ("Name", "Start time", "End time")
+		self.employees_leave_table = ttk.Treeview(self.added_leave_employees_frame, columns=columns, show="headings", height=10)
+
+		for col in columns:
+			self.employees_leave_table.heading(col, text=col)
+			self.employees_leave_table.column(col, anchor="center", width=150)
+		
+		self.employees_leave_table.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+
+		# style = ttk.Style()
+		# style.theme_use("default")
+
+		# style.configure("Treeview", background=("#2b2b2b"), foreground="white", rowheight=25, fieldbackground=("#2b2b2b"))
+	
+	def add_leave(self):
+		name = self.employee_leave_picker.get()
+		start_time = f"{self.start_hour_leave_picker.get()}:{self.start_minute_leave_picker.get()}"
+		end_time = f"{self.end_hour_leave_picker.get()}:{self.end_minute_leave_picker.get()}"
+		employee_info = (name, start_time, end_time)
+		self.employees_on_leave_list.append(employee_info)
+		self.update_leave_table()
+
+	def update_leave_table(self):
+		for row in self.employees_leave_table.get_children():
+			self.employees_leave_table.delete(row)
+		
+		for employee in self.employees_on_leave_list:
+			self.employees_leave_table.insert("", "end", values=employee)
+	
+	def add_to_leave_frame(self):
+		for i, employee in enumerate(self.employees_on_leave_list):
+			leave_employee = ctk.CTkSwitch(self.added_leave_employees_frame, text=f"{employee[0]} {employee[1]}-{employee[2]}")
+			leave_employee.grid(row=i, column=0, padx=5, pady=5, sticky="w")
+			leave_employee.select()
+	
+	def remove_leave(self):
+		selected = self.employees_leave_table.selection()
+		for row_id in selected:
+			self.employees_leave_table.delete(row_id)
+	
+	def toggle_leave_all_day(self):
+		if self.all_day_leave_checkbox.get():
+			self.start_hour_leave_picker.configure(state="disabled")
+			self.start_minute_leave_picker.configure(state="disabled")
+			self.end_hour_leave_picker.configure(state="disabled")
+			self.end_minute_leave_picker.configure(state="disabled")
+		else:
+			self.start_hour_leave_picker.configure(state="normal")
+			self.start_minute_leave_picker.configure(state="normal")
+			self.end_hour_leave_picker.configure(state="normal")
+			self.end_minute_leave_picker.configure(state="normal")
 
 	def draw_programs_meetings_tabview(self):
 		self.tabview.tab("Programs & Meetings").grid_columnconfigure((0, 1, 2), weight=1)
