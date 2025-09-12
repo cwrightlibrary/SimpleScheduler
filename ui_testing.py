@@ -10,7 +10,7 @@ class App(ctk.CTk):
 		super().__init__()
 		self.title("Simple Scheduler")
 		self.base_width = 1000
-		self.base_height = 600
+		self.base_height = 750
 		self.current_scale = 1.0
 		self.apply_scale(self.current_scale)
 
@@ -33,7 +33,7 @@ class App(ctk.CTk):
 		self.title_label = ctk.CTkLabel(self.sidebar_frame, text="Simple Scheduler", font=ctk.CTkFont(size=20, weight="bold"))
 		self.title_label.grid(row=1, column=0, padx=20, pady=(20, 10))
 
-		self.instructions_text = """Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos."""
+		self.instructions_text = """Here's a quick tutorial on how to create a schedule.\n\nFirst, in the Date tab, select your date. It'll automatically detect if that date falls on a weekend (including Friday). If it is a weekend, just select who's weekend it is.\n\nNext, in the Leave tab, select an employee's name and enter the hours they're off or check all day. Add or remove as many as you need.\n\nSimilarly, in the Programs & Meetings tab, add or remove as many programs or meetings that you need, assigning all involved employees.\n\nFinally, in the Review tab, just make sure everything is looks right and click Export Schedule to create your schedule as a Word document."""
 		self.instructions_label = ctk.CTkLabel(self.sidebar_frame, text=self.instructions_text, wraplength=200, justify=ctk.LEFT)
 		self.instructions_label.grid(row=2, column=0, padx=20, pady=10)
 
@@ -164,7 +164,7 @@ class App(ctk.CTk):
 		self.year_picker = ctk.CTkOptionMenu(self.tabview.tab("Date"), values=["2025", "2026", "2027", "2028", "2029", "2030"], command=self.update_date_label)
 		self.year_picker.grid(row=1, column=2, padx=10, pady=10, sticky="ew")
 
-		self.weekend_label = ctk.CTkLabel(self.tabview.tab("Date"), text="Who's weekday?")
+		self.weekend_label = ctk.CTkLabel(self.tabview.tab("Date"), text="Who's weekend?")
 		self.weekend_label.grid(row=2, column=0, padx=10, pady=10, sticky="e")
 
 		self.weekend_picker = ctk.CTkOptionMenu(self.tabview.tab("Date"), values=["Michelle's Weekend", "Rod's Weekend", "Lea's Weekend"], width=200)
