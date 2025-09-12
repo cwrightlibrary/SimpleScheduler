@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup
 
 import time
 
@@ -43,7 +44,24 @@ time.sleep(3)
 
 rss_content = driver.page_source
 
-with open("data/rss_feed.txt", "w", encoding="utf-8") as f:
-  f.write(rss_content)
+soup = BeautifulSoup(rss_content, "html.parser")
+pretty_html = soup.prettify()
+
+divs = soup.find_all("div", class_="ms-inputuserfield padfive seventyp")
+
+changes_list = []
+
+for div in divs:
+  name = div.find("h4").find("a").text.strip()
+  start_time = div.find("div").find_all("div")[0].text.strip().replace("Start Time:", "").strip()
+  end_time = div.find("div").find_all("div")[1].text.strip().replace("End Time:", "").strip()
+  # formatted_str = f"{name}\nStart Time: {start_time}\nEnd Time: {end_time}"
+  # changes_list.append(formatted_str)
+  change = [name, start_time, end_time]
+  changes_list.append(change)
+
+# for item in changes_list:
+#   print(item)
+#   print("\n---\n")
 
 driver.quit()

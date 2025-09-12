@@ -1,86 +1,196 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup
-import time
+import calendar
+from datetime import datetime
+import sqlite3
 
-# Setup Selenium options
-options = Options()
-options.add_argument("--disable-notifications")
-options.add_argument("--disable-extensions")
-options.add_argument("--headless")
+import customtkinter as ctk
 
-# Initialize WebDriver
-driver = webdriver.Chrome(options=options)
+class App(ctk.CTk):
+	def __init__(self):
+		super().__init__()
+		self.title("Simple Scheduler")
+		self.geometry("500x250")
+		self.resizable(False, False)
 
-# Define the RSS URL
-rss_url = r"https://richlandlibrary.sharepoint.com/sites/StAndrews/_layouts/15/listfeed.aspx?List=%7B12B7C455%2DEF3E%2D4D72%2D9E7B%2D7A480BF14DC0%7D&Source=https%3A%2F%2Frichlandlibrary%2Esharepoint%2Ecom%2Fsites%2FStAndrews%2FLists%2FSt%2520Andrews%2520Calendar%2Fcalendar%2Easpx"
+		self.lift()
+		self.focus_force()
+		self.grab_set()
 
-# Open the webpage
-driver.get(rss_url)
+		self.tuesday_employees = self.get_employees("tuesday")
+		self.tuesday_template = self.get_template("tuesday")
 
-# Read credentials from the file
-username = open("data/office_login.txt", "r", encoding="utf-8").readlines()[0].strip()
-password = open("data/office_login.txt", "r", encoding="utf-8").readlines()[1].strip()
+		self.changes = []
+		
+		self.months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+		self.current_days = 0; self.current_month = 0
+		self.current_year = 0; self.current_weekday = 0
 
-# Log in process (email input)
-email_input = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="email"]')))
-email_input.send_keys(username)
+		self.get_current_date()
 
-# Click Next
-next_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'idSIButton9')))
-next_button.click()
+		self.date_string = f"{self.current_weekday}, {self.current_month} {str(self.current_day)}, {self.current_year}"
 
-# Wait for password input and enter it
-password_input = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="password"]')))
-password_input.send_keys(password)
+		self.grid_columnconfigure((0, 1, 2), weight=1)
+		self.grid_rowconfigure((0, 1, 2, 3), weight=1)
 
-# Sleep to allow sign-in process to complete
-time.sleep(3)
+		self.title_label = ctk.CTkLabel(
+			self,
+			text="Simple Scheduler",
+			font=ctk.CTkFont(size=20, weight="bold")
+		)
+		self.title_label.grid(
+			row=0, column=0, columnspan=3,
+			padx=10, pady=10, sticky="new"
+		)
 
-# Click sign-in button
-sign_in_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'idSIButton9')))
-sign_in_button.click()
+		self.date_label = ctk.CTkLabel(
+			self,
+			text=self.date_string,
+			font=ctk.CTkFont(size=16, weight="bold")
+		)
+		self.date_label.grid(
+			row=1, column=0, columnspan=3,
+			padx=10, pady=10, sticky="nsew"
+		)
 
-# Allow for full sign-in and page load
-time.sleep(3)
+		self.month_options = ctk.CTkOptionMenu(
+			self,
+			values=self.months,
+			command=self.update_current_date
+		)
+		self.month_options.grid(
+			row=2, column=0,
+			padx=10, pady=10, sticky="ew"
+		)
+		self.month_options.set(self.current_month)
 
-# Reload the RSS page
-driver.get(rss_url)
+		self.day_options = ctk.CTkOptionMenu(
+			self,
+			values=self.current_days,
+			command=self.update_current_date
+		)
+		self.day_options.grid(
+			row=2, column=1,
+			padx=10, pady=10, sticky="ew"
+		)
+		self.day_options.set(self.current_day)
 
-# Wait for the page to fully load
-time.sleep(3)
+		self.year_options = ctk.CTkOptionMenu(
+			self,
+			values=[str(self.current_year + i) for i in range(6)],
+			command=self.update_current_date
+		)
+		self.year_options.grid(
+			row=2, column=2,
+			padx=10, pady=10, sticky="ew"
+		)
+		self.year_options.set(self.current_year)
 
-# Get the page source (raw HTML)
-rss_content = driver.page_source
+		self.create_template_button = ctk.CTkButton(
+			self,
+			text="Create Template",
+			height=40,
+			command=self.create_template
+		)
+		self.create_template_button.grid(
+			row=3, column=1,
+			padx=10, pady=10, sticky="ew"
+		)
 
-# Save the raw HTML to a file (optional)
-with open("data/rss_feed.txt", "w", encoding="utf-8") as f:
-    f.write(rss_content)
+		self.create_schedule_button = ctk.CTkButton(
+			self,
+			text="Create Schedule",
+			height=40,
+			command=self.create_schedule
+		)
+		self.create_schedule_button.grid(
+			row=3, column=2,
+			padx=10, pady=10, sticky="ew"
+		)
+	
+	def get_employees(self, day: str):
+		conn = sqlite3.connect("data/employees.db")
+		cursor = conn.cursor()
 
-# Parse the HTML content with BeautifulSoup
-soup = BeautifulSoup(rss_content, "html.parser")
+		cursor.execute("SELECT * FROM EMPLOYEES")
+		rows = cursor.fetchall()
 
-# Pretty-print the HTML to see the structure
-pretty_html = soup.prettify()
+		employees = []
+		for row in rows:
+			employees.append(list(row))
+		
+		return employees
 
-# Optionally print the cleaned up, readable HTML
-print(pretty_html)
+	def get_template(self, date: str):
+		conn = sqlite3.connect("data/template.db")
+		cursor = conn.cursor()
 
-# Now you can start selecting data using BeautifulSoup
-# For example, find all <item> tags if this is an RSS feed structure:
-items = soup.find_all("item")
-for item in items:
-    title = item.find("title").text if item.find("title") else "No title"
-    link = item.find("link").text if item.find("link") else "No link"
-    description = item.find("description").text if item.find("description") else "No description"
-    
-    print(f"Title: {title}")
-    print(f"Link: {link}")
-    print(f"Description: {description}\n")
+		cursor.execute("SELECT * FROM TEMPLATE")
+		rows = cursor.fetchall()
 
-# Close the browser
-driver.quit()
+		template = []
+		for row in rows:
+			template.append(list(row))
+		
+		return template
+	
+	def get_current_date(self):
+		year = datetime.now().year
+		month = self.months[datetime.now().month - 1]
+		day = datetime.now().day
+
+		amount_days = {m: calendar.monthrange(year, m)[1] for m in range(1, 13)}
+		current_days_total = amount_days[self.months.index(month) + 1]
+
+		self.current_days = [str(i + 1) for i in range(current_days_total)]
+
+		self.current_year = year
+		self.current_month = month
+		self.current_day = day
+
+		self.current_weekday = datetime.strptime(
+			f"{self.current_month} {str(self.current_day)}, {self.current_year}",
+			"%B %d, %Y"
+		).strftime("%A")
+	
+	def update_current_date(self, data):
+		selected_year = self.year_options.get()
+		selected_month = self.month_options.get()
+		selected_day = self.day_options.get()
+
+		amount_days = {m: calendar.monthrange(selected_year, m)[1] for m in range(1, 13)}
+		current_days_total = amount_days[self.months.index(selected_month) + 1]
+
+		self.current_days = [str(i + 1) for i in range(current_days_total)]
+
+		self.current_year = selected_year
+		self.current_month = selected_month
+		self.current_day = selected_day
+
+		self.current_weekday = datetime.strptime(
+			f"{self.current_month} {str(self.current_day)}, {self.current_year}",
+			"%B %d, %Y"
+		).strftime("%A")
+
+		self.date_string = f"{self.current_weekday}, {self.current_month} {str(self.current_day)}, {self.current_year}"
+
+		self.date_label.configure(text=self.date_string)
+		self.day_options.configure(values=self.current_days)
+	
+	def get_changes(self):
+		from scratch import changes_list
+		self.changes = changes_list
+	
+	def create_schedule(self):
+		self.get_changes()
+		print("Yet to implement...")
+		for change in self.changes:
+			print(change)
+	
+	def create_template(self):
+		self.get_changes()
+		print("Yet to implement...")
+		for change in self.changes:
+			print(change)
+
+if __name__ == "__main__":
+	app = App()
+	app.mainloop()
