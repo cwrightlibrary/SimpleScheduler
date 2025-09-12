@@ -21,6 +21,8 @@ class App(ctk.CTk):
 		self.theme_choice = "System"
 		ctk.set_appearance_mode(self.theme_choice)
 
+		self.employees_names = self.get_employee_names()
+
 		self.grid_columnconfigure((1, 2), weight=1)
 		self.grid_rowconfigure(0, weight=1)
 		
@@ -190,20 +192,63 @@ class App(ctk.CTk):
 			self.weekend_picker.configure(state="normal")
 		else:
 			self.weekend_picker.configure(state="disabled")
+		
+		if self.current_weekday in ["Friday", "Saturday"]:
+			self.hour_values = ["9", "10", "11", "12", "1", "2", "3", "4", "5", "6"]
+		elif self.current_weekday == "Sunday":
+			self.hour_values = ["2", "3", "4", "5", "6"]
+		else:
+			self.hour_values = ["9", "10", "11", "12", "1", "2", "3", "4", "5", "6", "7", "8"]
+		self.start_hour_leave_picker.configure(values=self.hour_values)
 	
 	def draw_leave_tabview(self):
-		self.tabview.tab("Leave").grid_columnconfigure((0, 1, 2), weight=1)
+		self.tabview.tab("Leave").grid_columnconfigure((0, 1, 2, 3), weight=1)
 		self.tabview.tab("Leave").grid_rowconfigure((3, 4), weight=1)
 
 		self.leave_label = ctk.CTkLabel(self.tabview.tab("Leave"), text="Who's Off Today?", font=ctk.CTkFont(size=20, weight="bold"))
-		self.leave_label.grid(row=0, column=0, columnspan=3, padx=10, pady=(80, 10), sticky="nsew")
-	
+		self.leave_label.grid(row=0, column=0, columnspan=4, padx=10, pady=(80, 10), sticky="nsew")
+
+		self.employee_leave_picker = ctk.CTkOptionMenu(self.tabview.tab("Leave"), values=self.employees_names)
+		self.employee_leave_picker.grid(row=1, column=0, columnspan=4, padx=10, pady=10, sticky="")
+
+		self.hour_values = []
+		if self.current_weekday in ["Friday", "Saturday"]:
+			self.hour_values = ["9", "10", "11", "12", "1", "2", "3", "4", "5", "6"]
+		elif self.current_weekday == "Sunday":
+			self.hour_values = ["2", "3", "4", "5", "6"]
+		else:
+			self.hour_values = ["9", "10", "11", "12", "1", "2", "3", "4", "5", "6", "7", "8"]
+		
+		self.start_hour_leave_label = ctk.CTkLabel(self.tabview.tab("Leave"), text="Start time")
+		self.start_hour_leave_label.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
+
+		self.start_hour_leave_picker = ctk.CTkOptionMenu(self.tabview.tab("Leave"), values=self.hour_values)
+		self.start_hour_leave_picker.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
+		
+		self.start_minute_leave_picker = ctk.CTkOptionMenu(self.tabview.tab("Leave"), values=["00", "15", "30", "45"])
+		self.start_minute_leave_picker.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
+
 	def draw_programs_meetings_tabview(self):
 		self.tabview.tab("Programs & Meetings").grid_columnconfigure((0, 1, 2), weight=1)
 		self.tabview.tab("Programs & Meetings").grid_rowconfigure((3, 4), weight=1)
 
 		self.programs_meetings_label = ctk.CTkLabel(self.tabview.tab("Programs & Meetings"), text="Today's Programs & Meetings", font=ctk.CTkFont(size=20, weight="bold"))
 		self.programs_meetings_label.grid(row=0, column=0, columnspan=3, padx=10, pady=(80, 10), sticky="nsew")
+	
+	def get_employee_names(self):
+		db_conn = sqlite3.connect("data/employees.db")
+		db_cursor = db_conn.cursor()
+
+		db_cursor.execute("SELECT First_name, Last_name FROM EMPLOYEES")
+		rows = db_cursor.fetchall()
+
+		employees_names = []
+
+		for row in rows:
+			name = " ".join(row)
+			employees_names.append(name)
+		
+		return employees_names
 	
 	def draw_review_tabview(self):
 		self.tabview.tab("Review").grid_columnconfigure((0, 1, 2), weight=1)
@@ -334,6 +379,10 @@ class AboutWindow(ctk.CTkToplevel):
 		self.title("About Simple Scheduler")
 		self.geometry("400x250")
 		self.resizable(False, False)
+
+		self.lift()
+		self.focus_force()
+		self.grab_set()
 
 		self.update_idletasks()
 		x = master.winfo_x() + (master.winfo_width() // 2) - (self.winfo_width() // 2)
