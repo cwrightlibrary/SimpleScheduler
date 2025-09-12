@@ -1,6 +1,6 @@
 # ignore .db files for privacy
 *.db
-test.docx
+out/test.docx
 
 # macOS specific
 .DS_Store
